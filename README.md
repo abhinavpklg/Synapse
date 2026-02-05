@@ -1,0 +1,2 @@
+# Synapse
+Distributed AI Orchestrator

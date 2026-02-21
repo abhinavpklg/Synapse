@@ -26,7 +26,7 @@ Design AI workflows by dragging agent nodes onto a canvas, connecting them into 
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-username/synapse.git
+git clone https://github.com/abhinavpklg/synapse.git
 cd synapse
 
 # 2. Start infrastructure (PostgreSQL + Redis)

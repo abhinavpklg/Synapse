@@ -1,14 +1,14 @@
 # Synapse — Development Tracker
 
 **Started:** 2026-02-19  
-**Current Phase:** M1 — Foundation (Phase 2 Complete, Phase 3 Next)  
-**Next Action:** Begin Phase 3 — Frontend Scaffolding  
+**Current Phase:** M2 — Canvas + Agent Config  
+**Next Action:** Begin Milestone 2 — Agent node components, sidebar palette, config panel  
 
 ---
 
 ## Build Progress
 
-### Milestone 1: Foundation 🟡 In Progress
+### Milestone 1: Foundation ✅ Complete
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -31,10 +31,10 @@
 | Backend: Alembic setup | ✅ | Fixed env.py to use create_async_engine directly |
 | Database: Initial migration (6 tables) | ✅ | workflows, agent_nodes, edges, workflow_executions, agent_executions, provider_configs |
 | Verify backend health check | ✅ | `curl /api/health` → `{"status":"ok"}` |
-| Frontend: Vite + React + TS + Tailwind | ⬜ | |
-| Frontend: Install React Flow, Zustand, Lucide icons | ⬜ | |
-| Basic React Flow canvas rendering (empty) | ⬜ | |
-| Verify full stack connects end-to-end | ⬜ | |
+| Frontend: Vite + React + TS + Tailwind | ✅ | Vite 7, React 18, Tailwind via @tailwindcss/vite |
+| Frontend: Install React Flow, Zustand, Lucide icons | ✅ | reactflow, zustand, lucide-react, axios |
+| Basic React Flow canvas rendering (empty) | ✅ | 4 demo nodes with animated edges, dark theme |
+| Verify full stack connects end-to-end | ✅ | Green "API Connected" indicator in header |
 
 ### Milestone 2: Canvas + Agent Config ⬜ Not Started
 | Task | Status | Notes |
@@ -235,7 +235,14 @@
 ## Frontend — `frontend/`
 | File | Purpose | Status |
 |------|---------|--------|
-| *(Not yet scaffolded — Phase 3 next)* | | |
+| `package.json` | Node deps + scripts | ✅ |
+| `vite.config.ts` | Vite config with API proxy + Tailwind | ✅ |
+| `tsconfig.json` | TypeScript config (strict) | ✅ |
+| `.env.example` | Frontend env vars template | ✅ |
+| `.env` | Actual env vars (git-ignored) | ✅ |
+| `src/main.tsx` | React entry point | ✅ |
+| `src/index.css` | Tailwind imports + base styles | ✅ |
+| `src/App.tsx` | App shell with header + React Flow canvas | ✅ |
 
 ## Documentation — `docs/`
 | File | Purpose | Status |

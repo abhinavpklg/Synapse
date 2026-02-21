@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapse-backend"
+version = "0.1.0"
+description = "Visual multi-agent AI orchestration platform — backend"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Abhinav Pandey" }]
+
+dependencies = [
+    # ── Web Framework ────────────────────────────────
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+
+    # ── Database ─────────────────────────────────────
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+
+    # ── Redis ────────────────────────────────────────
+    "redis[hiredis]>=5.2.0",
+
+    # ── Data Validation & Settings ───────────────────
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+
+    # ── HTTP Client (for LLM provider API calls) ────
+    "httpx>=0.28.0",
+
+    # ── Security ─────────────────────────────────────
+    "cryptography>=44.0.0",
+
+    # ── Logging ──────────────────────────────────────
+    "structlog>=24.4.0",
+
+    # ── Utilities ────────────────────────────────────
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import ordering)
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

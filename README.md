@@ -4,16 +4,16 @@
 
 Design AI workflows by dragging agent nodes onto a canvas, connecting them into pipelines, and executing them with real-time streaming output. Each agent can use any LLM provider and access external tools via MCP (Model Context Protocol).
 
-> 🚧 **Under active development** — see the [Development Tracker](./synapse-dev-tracker.md) for current status.
+> **Under active development** — see the [Development Tracker](./synapse-dev-tracker.md) for current status.
 
 ## Features
 
-- 🎨 **Visual Workflow Builder** — Drag-and-drop canvas powered by React Flow
-- 🤖 **Multi-Agent Pipelines** — Chain agents with different roles, prompts, and models
-- 🔌 **Provider Agnostic** — OpenAI, Anthropic, Gemini, Groq, DeepSeek, OpenRouter, or any OpenAI-compatible endpoint
-- ⚡ **Real-Time Streaming** — Watch agents think token-by-token via WebSocket
-- 🛠️ **MCP Tool Access** — Agents can search the web, read files, call APIs via Model Context Protocol
-- 📋 **Template Workflows** — Pre-built pipelines to get started in seconds
+- **Visual Workflow Builder** — Drag-and-drop canvas powered by React Flow
+- **Multi-Agent Pipelines** — Chain agents with different roles, prompts, and models
+- **Provider Agnostic** — OpenAI, Anthropic, Gemini, Groq, DeepSeek, OpenRouter, or any OpenAI-compatible endpoint
+- **Real-Time Streaming** — Watch agents think token-by-token via WebSocket
+- **MCP Tool Access** — Agents can search the web, read files, call APIs via Model Context Protocol
+- **Template Workflows** — Pre-built pipelines to get started in seconds
 
 ## Quick Start
 

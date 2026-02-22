@@ -1,149 +1,141 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  type Connection,
-  type Node,
-  type Edge,
   BackgroundVariant,
+  type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { Zap } from "lucide-react";
+import { Zap, Save } from "lucide-react";
+
+import { AgentNode } from "./features/canvas/nodes/AgentNode";
+import { InputNode } from "./features/canvas/nodes/InputNode";
+import { NodePalette } from "./features/canvas/panels/NodePalette";
+import { ConfigPanel } from "./features/canvas/panels/ConfigPanel";
+import { useWorkflowStore } from "./stores/workflowStore";
+import type { AgentType } from "./types/agent";
 
 /**
- * Demo nodes to verify React Flow renders correctly.
- * These will be replaced with dynamic nodes in M2.
+ * Root application component.
+ *
+ * Layout: [NodePalette] [ReactFlow Canvas] [ConfigPanel]
+ * The palette is always visible. The config panel appears when
+ * a node is selected.
  */
-const initialNodes: Node[] = [
-  {
-    id: "input-1",
-    type: "default",
-    position: { x: 100, y: 200 },
-    data: { label: "📥 User Input" },
-    style: {
-      background: "#1e1e2e",
-      color: "#e2e8f0",
-      border: "1px solid #6366f1",
-      borderRadius: "8px",
-      padding: "10px 16px",
-      fontSize: "13px",
-    },
-  },
-  {
-    id: "agent-1",
-    type: "default",
-    position: { x: 400, y: 100 },
-    data: { label: "🔍 Researcher" },
-    style: {
-      background: "#1e1e2e",
-      color: "#e2e8f0",
-      border: "1px solid #8b5cf6",
-      borderRadius: "8px",
-      padding: "10px 16px",
-      fontSize: "13px",
-    },
-  },
-  {
-    id: "agent-2",
-    type: "default",
-    position: { x: 400, y: 300 },
-    data: { label: "✍️ Writer" },
-    style: {
-      background: "#1e1e2e",
-      color: "#e2e8f0",
-      border: "1px solid #8b5cf6",
-      borderRadius: "8px",
-      padding: "10px 16px",
-      fontSize: "13px",
-    },
-  },
-  {
-    id: "agent-3",
-    type: "default",
-    position: { x: 700, y: 200 },
-    data: { label: "📝 Editor" },
-    style: {
-      background: "#1e1e2e",
-      color: "#e2e8f0",
-      border: "1px solid #8b5cf6",
-      borderRadius: "8px",
-      padding: "10px 16px",
-      fontSize: "13px",
-    },
-  },
-];
-
-const initialEdges: Edge[] = [
-  {
-    id: "e-input-researcher",
-    source: "input-1",
-    target: "agent-1",
-    animated: true,
-    style: { stroke: "#6366f1" },
-  },
-  {
-    id: "e-input-writer",
-    source: "input-1",
-    target: "agent-2",
-    animated: true,
-    style: { stroke: "#6366f1" },
-  },
-  {
-    id: "e-researcher-editor",
-    source: "agent-1",
-    target: "agent-3",
-    animated: true,
-    style: { stroke: "#6366f1" },
-  },
-  {
-    id: "e-writer-editor",
-    source: "agent-2",
-    target: "agent-3",
-    animated: true,
-    style: { stroke: "#6366f1" },
-  },
-];
-
 export default function App() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<ReactFlowInstance | null>(null);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "ok" | "error"
   >("checking");
 
-  // Check backend connectivity on mount
-  useState(() => {
+  // ── Store bindings ────────────────────────────────
+  const nodes = useWorkflowStore((s) => s.nodes);
+  const edges = useWorkflowStore((s) => s.edges);
+  const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId);
+  const onNodesChange = useWorkflowStore((s) => s.onNodesChange);
+  const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange);
+  const onConnect = useWorkflowStore((s) => s.onConnect);
+  const addAgentNode = useWorkflowStore((s) => s.addAgentNode);
+  const addInputNode = useWorkflowStore((s) => s.addInputNode);
+  const selectNode = useWorkflowStore((s) => s.selectNode);
+  const workflowName = useWorkflowStore((s) => s.workflowName);
+  const hasUnsavedChanges = useWorkflowStore((s) => s.hasUnsavedChanges);
+
+  // ── Custom node types (memoized to avoid React Flow warning) ──
+  const nodeTypes = useMemo(
+    () => ({
+      agent: AgentNode,
+      inputNode: InputNode,
+    }),
+    [],
+  );
+
+  // ── Backend health check ──────────────────────────
+  useEffect(() => {
     fetch("/api/health")
       .then((res) => res.json())
       .then(() => setBackendStatus("ok"))
       .catch(() => setBackendStatus("error"));
-  });
+  }, []);
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((eds) => addEdge({ ...connection, animated: true, style: { stroke: "#6366f1" } }, eds));
+  // ── Drag & Drop handling ──────────────────────────
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const agentType = event.dataTransfer.getData(
+        "application/synapse-agent-type",
+      );
+      if (!agentType || !reactFlowInstance || !reactFlowWrapper.current) return;
+
+      // Convert screen coordinates to canvas coordinates
+      const bounds = reactFlowWrapper.current.getBoundingClientRect();
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      });
+
+      if (agentType === "__input__") {
+        addInputNode(position);
+      } else {
+        addAgentNode(agentType as AgentType, position);
+      }
     },
-    [setEdges]
+    [reactFlowInstance, addAgentNode, addInputNode],
+  );
+
+  // ── Deselect on canvas click ──────────────────────
+  const onPaneClick = useCallback(() => {
+    selectNode(null);
+  }, [selectNode]);
+
+  // ── Node click → select ───────────────────────────
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: { id: string }) => {
+      selectNode(node.id);
+    },
+    [selectNode],
   );
 
   return (
     <div className="flex flex-col h-screen bg-[#0a0a0f]">
       {/* ── Header ──────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#0a0a0f]">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-[#0a0a0f] shrink-0">
         <div className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-indigo-400" />
           <h1 className="text-lg font-semibold text-white tracking-tight">
             Synapse
           </h1>
           <span className="text-xs text-white/40 ml-1">v0.1.0</span>
+          <span className="text-xs text-white/30 ml-3">
+            {workflowName}
+            {hasUnsavedChanges && (
+              <span className="text-amber-400 ml-1">•</span>
+            )}
+          </span>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Backend status indicator */}
+          {/* Save button (wired in later) */}
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                       bg-white/5 text-white/60 hover:bg-white/10 hover:text-white 
+                       transition-colors border border-white/10"
+            title="Save workflow (coming soon)"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save
+          </button>
+
+          {/* Backend status */}
           <div className="flex items-center gap-1.5 text-xs">
             <div
               className={`w-2 h-2 rounded-full ${
@@ -165,40 +157,61 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Canvas ──────────────────────────────────── */}
-      <div className="flex-1">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={1}
-            color="#ffffff08"
-          />
-          <Controls
-            style={{
-              background: "#1e1e2e",
-              borderColor: "#ffffff15",
-              borderRadius: "8px",
+      {/* ── Main Layout ─────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Node Palette */}
+        <NodePalette />
+
+        {/* Center: Canvas */}
+        <div className="flex-1" ref={reactFlowWrapper}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onPaneClick={onPaneClick}
+            onNodeClick={onNodeClick}
+            nodeTypes={nodeTypes}
+            fitView
+            proOptions={{ hideAttribution: true }}
+            defaultEdgeOptions={{
+              animated: true,
+              style: { stroke: "#6366f1", strokeWidth: 2 },
             }}
-          />
-          <MiniMap
-            style={{
-              background: "#1e1e2e",
-              borderColor: "#ffffff15",
-              borderRadius: "8px",
-            }}
-            nodeColor="#6366f1"
-            maskColor="rgba(0, 0, 0, 0.7)"
-          />
-        </ReactFlow>
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={20}
+              size={1}
+              color="#ffffff08"
+            />
+            <Controls
+              style={{
+                background: "#1e1e2e",
+                borderColor: "#ffffff15",
+                borderRadius: "8px",
+              }}
+            />
+            <MiniMap
+              style={{
+                background: "#1e1e2e",
+                borderColor: "#ffffff15",
+                borderRadius: "8px",
+              }}
+              nodeColor={(node) =>
+                node.type === "inputNode" ? "#10b981" : "#6366f1"
+              }
+              maskColor="rgba(0, 0, 0, 0.7)"
+            />
+          </ReactFlow>
+        </div>
+
+        {/* Right: Config Panel (visible when agent selected) */}
+        {selectedNodeId && <ConfigPanel />}
       </div>
     </div>
   );

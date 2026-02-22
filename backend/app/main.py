@@ -157,8 +157,9 @@ def _register_routes(app: FastAPI) -> None:
         }
 
     # API v1 routes will be registered here as we build them:
-    # from app.api.v1.router import api_v1_router
-    # app.include_router(api_v1_router, prefix="/api/v1")
+    from app.api.v1.router import api_v1_router
+
+    app.include_router(api_v1_router, prefix="/api/v1")
 
 
 # Create the app instance — this is what uvicorn imports

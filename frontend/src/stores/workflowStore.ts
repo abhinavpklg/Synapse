@@ -22,6 +22,7 @@ import type { AgentNodeData, AgentType } from "../types/agent";
 import { AGENT_TYPE_DEFAULTS } from "../types/agent";
 import type { InputNodeData } from "../types/workflow";
 import { wouldCreateCycle } from "../lib/dag";
+import { createWorkflow, getWorkflow, updateWorkflow } from "../services/workflowService";
 
 /** Default edge style for the canvas. */
 const DEFAULT_EDGE_STYLE = {
@@ -72,6 +73,9 @@ interface WorkflowState {
   setWorkflowName: (name: string) => void;
   clearCanvas: () => void;
   getCanvasData: () => { nodes: Node[]; edges: Edge[] };
+  saveWorkflow: () => Promise<void>;
+  loadWorkflow: (id: string) => Promise<void>;
+  isSaving: boolean;
 }
 
 /** Input node that serves as the workflow entry point. */
@@ -95,6 +99,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   edges: [],
   selectedNodeId: null,
   hasUnsavedChanges: false,
+  isSaving: false,
 
   // ── React Flow Callbacks ────────────────────────────
   onNodesChange: (changes) => {
@@ -226,5 +231,55 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   getCanvasData: () => {
     const { nodes, edges } = get();
     return { nodes, edges };
+  },
+
+  saveWorkflow: async () => {
+    const { workflowId, workflowName, nodes, edges } = get();
+    set({ isSaving: true });
+
+    try {
+      if (workflowId) {
+        // Update existing workflow
+        await updateWorkflow(workflowId, {
+          name: workflowName,
+          canvas_data: { nodes, edges },
+        });
+      } else {
+        // Create new workflow
+        const created = await createWorkflow({
+          name: workflowName,
+          canvas_data: { nodes, edges },
+        });
+        set({ workflowId: created.id });
+      }
+      set({ hasUnsavedChanges: false });
+    } catch (error) {
+      console.error("Failed to save workflow:", error);
+      throw error;
+    } finally {
+      set({ isSaving: false });
+    }
+  },
+
+  loadWorkflow: async (id: string) => {
+    try {
+      const workflow = await getWorkflow(id);
+      const canvasData = workflow.canvas_data ?? { nodes: [], edges: [] };
+      set({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodes: canvasData.nodes ?? [],
+        edges: (canvasData.edges ?? []).map((e: Record<string, unknown>) => ({
+          ...e,
+          animated: true,
+          style: { stroke: "#6366f1", strokeWidth: 2 },
+        })),
+        selectedNodeId: null,
+        hasUnsavedChanges: false,
+      });
+    } catch (error) {
+      console.error("Failed to load workflow:", error);
+      throw error;
+    }
   },
 }));

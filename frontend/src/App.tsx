@@ -43,6 +43,8 @@ export default function App() {
   const selectNode = useWorkflowStore((s) => s.selectNode);
   const workflowName = useWorkflowStore((s) => s.workflowName);
   const hasUnsavedChanges = useWorkflowStore((s) => s.hasUnsavedChanges);
+  const saveWorkflow = useWorkflowStore((s) => s.saveWorkflow);
+  const isSaving = useWorkflowStore((s) => s.isSaving);
 
   // ── Custom node types (memoized to avoid React Flow warning) ──
   const nodeTypes = useMemo(
@@ -124,15 +126,22 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Save button (wired in later) */}
+          {/* Save button */}
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                       bg-white/5 text-white/60 hover:bg-white/10 hover:text-white 
-                       transition-colors border border-white/10"
-            title="Save workflow (coming soon)"
+            onClick={() => {
+  console.log("Save clicked, hasUnsavedChanges:", hasUnsavedChanges);
+  saveWorkflow();
+}}
+            disabled={isSaving || !hasUnsavedChanges}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                       transition-colors border ${
+                         hasUnsavedChanges
+                           ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/30"
+                           : "bg-white/5 text-white/40 border-white/10 cursor-default"
+                       }`}
           >
             <Save className="w-3.5 h-3.5" />
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </button>
 
           {/* Backend status */}

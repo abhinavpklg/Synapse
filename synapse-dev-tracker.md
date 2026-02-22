@@ -1,8 +1,8 @@
 # Synapse — Development Tracker
 
 **Started:** 2026-02-19  
-**Current Phase:** M2 — Canvas + Agent Config  
-**Next Action:** Begin Milestone 2 — Agent node components, sidebar palette, config panel  
+**Current Phase:** M3 — Execution Engine  
+**Next Action:** Begin Milestone 3 — LLM provider abstraction, execution engine, WebSocket streaming  
 
 ---
 
@@ -36,20 +36,24 @@
 | Basic React Flow canvas rendering (empty) | ✅ | 4 demo nodes with animated edges, dark theme |
 | Verify full stack connects end-to-end | ✅ | Green "API Connected" indicator in header |
 
-### Milestone 2: Canvas + Agent Config ⬜ Not Started
+### Milestone 2: Canvas + Agent Config ✅ Complete
 | Task | Status | Notes |
 |------|--------|-------|
-| Agent node sidebar palette (drag source) | ⬜ | |
-| Custom AgentNode component for React Flow | ⬜ | |
-| Custom InputNode component (workflow entry point) | ⬜ | |
-| Edge connection with validation (no cycles) | ⬜ | |
-| Agent configuration side panel | ⬜ | |
-| Provider + model dropdown in config panel | ⬜ | |
-| System prompt textarea with defaults per agent type | ⬜ | |
-| Workflow CRUD API endpoints | ⬜ | |
-| Save workflow (canvas → API → DB) | ⬜ | |
-| Load workflow (DB → API → canvas) | ⬜ | |
-| Zustand stores: workflowStore, providerStore | ⬜ | |
+| Agent node sidebar palette (drag source) | ✅ | 7 agent types + input node, HTML drag-and-drop |
+| Custom AgentNode component for React Flow | ✅ | Shows label, type badge, provider/model |
+| Custom InputNode component (workflow entry point) | ✅ | Green accent, output handle only, max 1 per workflow |
+| Edge connection with validation (no cycles) | ✅ | DFS-based cycle detection in lib/dag.ts |
+| Agent configuration side panel | ✅ | Name, prompt, provider, model, temperature, max tokens |
+| Provider + model dropdown in config panel | ✅ | Models update dynamically when provider changes |
+| System prompt textarea with defaults per agent type | ✅ | 7 pre-built prompts |
+| Workflow CRUD API endpoints | ✅ | POST/GET/PUT/DELETE at /api/v1/workflows |
+| Save workflow (canvas → API → DB) | ✅ | Full canvas state persisted to PostgreSQL |
+| Load workflow (DB → API → canvas) | ✅ | Store action wired, auto-load not yet connected |
+| Zustand stores: workflowStore | ✅ | Nodes, edges, selection, save/load actions |
+| Pydantic schemas for workflow API | ✅ | WorkflowCreate, WorkflowUpdate, WorkflowResponse |
+| Workflow service (business logic layer) | ✅ | Clean separation: routes → service → DB |
+| API v1 router aggregator | ✅ | Modular route registration |
+| Frontend API service layer | ✅ | axios client + typed workflowService |
 
 ### Milestone 3: Execution Engine ⬜ Not Started
 | Task | Status | Notes |
@@ -133,6 +137,9 @@
 | Alembic migration file generated empty | Replaced script.py.mako with Alembic's built-in template | 2026-02-21 |
 | Alembic autogenerate produced empty upgrade() | Rewrote env.py to use `create_async_engine` directly instead of `async_engine_from_config` | 2026-02-21 |
 | Circular import: workflow.py ↔ execution.py | Removed bottom-of-file cross-imports; SQLAlchemy resolves string refs via registry | 2026-02-21 |
+| React Flow default "input" node type clash | Renamed custom type to "inputNode" to avoid conflict | 2026-02-22 |
+| Vite stale cache after file changes | Clear `node_modules/.vite` and restart dev server | 2026-02-22 |
+| `import * as` not resolving in Vite | Switched to named imports for workflowService | 2026-02-22 |
 
 ---
 
@@ -154,6 +161,12 @@
 | Strategy Pattern | LLM providers | One interface, many implementations — swap providers at runtime |
 | DAG | Workflow model | Directed Acyclic Graph — guarantees termination, enables topo sort |
 | State Machine | Execution lifecycle | Clear status transitions for workflows and agents |
+| Zustand | Frontend state management | Simpler than Redux; functions returning objects with state + actions |
+| React Flow custom nodes | Frontend canvas | Memoized components with Handle for connection points |
+| HTML Drag and Drop API | Node palette | dataTransfer stores agent type; onDrop creates nodes at position |
+| Vite dev proxy | Frontend → Backend | Proxies /api and /ws to localhost:8000 during development |
+| Axios | HTTP client | Typed API client with base URL config |
+| Pydantic from_attributes | Schema/ORM bridge | model_validate() converts SQLAlchemy objects to response schemas |
 
 ---
 
@@ -214,9 +227,11 @@
 | | | |
 | **Schemas — `app/schemas/`** | | |
 | `__init__.py` | Package init | ✅ |
+| `workflow.py` | Workflow request/response schemas | ✅ |
 | | | |
 | **Services — `app/services/`** | | |
 | `__init__.py` | Package init | ✅ |
+| `workflow_service.py` | Workflow CRUD business logic | ✅ |
 | | | |
 | **Providers — `app/providers/`** | | |
 | `__init__.py` | Package init | ✅ |
@@ -227,6 +242,8 @@
 | **API Routes — `app/api/`** | | |
 | `__init__.py` | Package init | ✅ |
 | `v1/__init__.py` | Package init | ✅ |
+| `v1/router.py` | V1 router aggregator | ✅ |
+| `v1/workflows.py` | Workflow CRUD endpoints | ✅ |
 | | | |
 | **Tests — `tests/`** | | |
 | `__init__.py` | Package init | ✅ |
@@ -243,6 +260,27 @@
 | `src/main.tsx` | React entry point | ✅ |
 | `src/index.css` | Tailwind imports + base styles | ✅ |
 | `src/App.tsx` | App shell with header + React Flow canvas | ✅ |
+| | | |
+| **Types — `src/types/`** | | |
+| `agent.ts` | Agent types, defaults, provider/model maps | ✅ |
+| `workflow.ts` | Workflow, canvas, and API payload types | ✅ |
+| `index.ts` | Barrel export | ✅ |
+| | | |
+| **Stores — `src/stores/`** | | |
+| `workflowStore.ts` | Zustand store: nodes, edges, save/load | ✅ |
+| | | |
+| **Lib — `src/lib/`** | | |
+| `dag.ts` | DAG cycle detection utility | ✅ |
+| | | |
+| **Services — `src/services/`** | | |
+| `api.ts` | Axios base client config | ✅ |
+| `workflowService.ts` | Workflow CRUD API client | ✅ |
+| | | |
+| **Canvas — `src/features/canvas/`** | | |
+| `nodes/AgentNode.tsx` | Custom agent node component | ✅ |
+| `nodes/InputNode.tsx` | Custom input node component | ✅ |
+| `panels/NodePalette.tsx` | Draggable node sidebar | ✅ |
+| `panels/ConfigPanel.tsx` | Agent config side panel | ✅ |
 
 ## Documentation — `docs/`
 | File | Purpose | Status |

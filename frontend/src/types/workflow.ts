@@ -28,7 +28,7 @@ export interface CanvasData {
 /** A node as serialized for the API (React Flow node shape). */
 export interface CanvasNode {
   id: string;
-  type: "agent" | "input";
+  type: "agent" | "inputNode";
   position: { x: number; y: number };
   data: AgentNodeData | InputNodeData;
 }

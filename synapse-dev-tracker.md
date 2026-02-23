@@ -1,8 +1,8 @@
 # Synapse — Development Tracker
 
 **Started:** 2026-02-19  
-**Current Phase:** M3 — Execution Engine  
-**Next Action:** Begin Milestone 3 — LLM provider abstraction, execution engine, WebSocket streaming  
+**Current Phase:** M4 — Polish + Deploy  
+**Next Action:** Begin Milestone 4 — Templates, provider settings UI, polish, deployment  
 
 ---
 
@@ -55,23 +55,27 @@
 | API v1 router aggregator | ✅ | Modular route registration |
 | Frontend API service layer | ✅ | axios client + typed workflowService |
 
-### Milestone 3: Execution Engine ⬜ Not Started
+### Milestone 3: Execution Engine ✅ Complete
 | Task | Status | Notes |
 |------|--------|-------|
-| DAG validation utility (frontend + backend) | ⬜ | |
-| Topological sort for execution ordering | ⬜ | |
-| BaseLLMProvider abstract class | ⬜ | |
-| OpenAI provider implementation | ⬜ | |
-| Anthropic provider implementation | ⬜ | |
-| Provider registry + factory | ⬜ | |
-| Execution engine: sequential agent runner | ⬜ | |
-| WebSocket endpoint for streaming | ⬜ | |
-| Frontend WebSocket hook (useWebSocket) | ⬜ | |
-| Execution panel UI | ⬜ | |
-| Agent output streaming display | ⬜ | |
-| Node status indicators on canvas (color) | ⬜ | |
-| Cancel execution (client → server) | ⬜ | |
-| Error handling: provider failures, timeouts | ⬜ | |
+| DAG validation utility (frontend + backend) | ✅ | Cycle detection (frontend), topological sort (backend) |
+| Topological sort for execution ordering | ✅ | Kahn's algorithm, validates no cycles |
+| BaseLLMProvider abstract class | ✅ | Strategy pattern: stream(), complete(), validate_api_key() |
+| OpenAI provider implementation | ✅ | SSE streaming, error handling |
+| Anthropic provider implementation | ✅ | System prompt extraction, different SSE format |
+| Gemini provider implementation | ✅ | URL-based model, systemInstruction field |
+| Groq provider implementation | ✅ | OpenAI-compatible fast inference |
+| OpenRouter provider implementation | ✅ | OpenAI-compatible with attribution headers |
+| Provider registry + factory | ✅ | 5 providers registered, one-line additions |
+| Execution engine: sequential agent runner | ✅ | Background task, state machine, Redis pub/sub |
+| WebSocket endpoint for streaming | ✅ | Concurrent Redis listener + client listener via asyncio |
+| Frontend WebSocket hook (useWebSocket) | ✅ | Auto-connect, event dispatch to execution store |
+| Execution panel UI | ✅ | Expandable agent cards, streaming text, token/latency stats |
+| Node status indicators on canvas (color) | ✅ | Border color changes: idle → running → completed/failed |
+| Cancel execution (client → server) | ✅ | Cancel button, checked between agent runs |
+| Run workflow modal | ✅ | Input collection, auto-save before execution |
+| Error handling: provider failures, timeouts | ✅ | Auth, rate limit, timeout errors mapped to HTTP codes |
+| Execution schemas + API routes | ✅ | Start, cancel, get execution endpoints |
 
 ### Milestone 4: Polish + Deploy ⬜ Not Started
 | Task | Status | Notes |
@@ -96,10 +100,7 @@
 ### Milestone 5: Post-Weekend ⬜ Not Started
 | Task | Status | Notes |
 |------|--------|-------|
-| Gemini provider | ⬜ | |
-| Groq provider | ⬜ | |
 | DeepSeek provider | ⬜ | |
-| OpenRouter provider | ⬜ | |
 | Custom endpoint provider | ⬜ | |
 | Template: GitHub Repo Monitor | ⬜ | |
 | Template: Code Review Agent | ⬜ | |
@@ -140,6 +141,9 @@
 | React Flow default "input" node type clash | Renamed custom type to "inputNode" to avoid conflict | 2026-02-22 |
 | Vite stale cache after file changes | Clear `node_modules/.vite` and restart dev server | 2026-02-22 |
 | `import * as` not resolving in Vite | Switched to named imports for workflowService | 2026-02-22 |
+| agent_node_id was UUID FK but node IDs are strings | Changed to String(255) column, reset DB and regenerated migration | 2026-02-23 |
+| OpenRouter API key not passed to engine | Added openrouter to env-key mapping in executions.py | 2026-02-23 |
+| WebSocket not streaming — receive_text blocked loop | Split into concurrent Redis + client listener tasks via asyncio.wait | 2026-02-23 |
 
 ---
 
@@ -167,6 +171,11 @@
 | Vite dev proxy | Frontend → Backend | Proxies /api and /ws to localhost:8000 during development |
 | Axios | HTTP client | Typed API client with base URL config |
 | Pydantic from_attributes | Schema/ORM bridge | model_validate() converts SQLAlchemy objects to response schemas |
+| Topological Sort (Kahn's) | Execution engine | BFS-based ordering; guarantees deps run before dependents |
+| Redis Pub/Sub | Execution streaming | Engine publishes events; WebSocket subscribes and forwards |
+| asyncio.wait + create_task | WebSocket handler | Run Redis listener and client listener concurrently |
+| FastAPI BackgroundTasks | Execution API | Long-running execution runs after HTTP response returns |
+| SSE parsing | LLM providers | Parse "data: " prefixed lines from streaming API responses |
 
 ---
 
@@ -228,13 +237,23 @@
 | **Schemas — `app/schemas/`** | | |
 | `__init__.py` | Package init | ✅ |
 | `workflow.py` | Workflow request/response schemas | ✅ |
+| `execution.py` | Execution request/response schemas | ✅ |
 | | | |
 | **Services — `app/services/`** | | |
 | `__init__.py` | Package init | ✅ |
 | `workflow_service.py` | Workflow CRUD business logic | ✅ |
+| `dag.py` | Topological sort + dependency resolution | ✅ |
+| `execution_engine.py` | Core orchestrator: run agents, stream via Redis | ✅ |
 | | | |
 | **Providers — `app/providers/`** | | |
 | `__init__.py` | Package init | ✅ |
+| `base.py` | BaseLLMProvider abstract class | ✅ |
+| `registry.py` | Provider factory + registration map | ✅ |
+| `openai.py` | OpenAI provider (GPT-4o, etc.) | ✅ |
+| `anthropic.py` | Anthropic provider (Claude) | ✅ |
+| `gemini.py` | Google Gemini provider | ✅ |
+| `groq.py` | Groq provider (Llama, Mixtral) | ✅ |
+| `openrouter.py` | OpenRouter multi-model gateway | ✅ |
 | | | |
 | **MCP — `app/mcp/`** | | |
 | `__init__.py` | Package init | ✅ |
@@ -244,6 +263,8 @@
 | `v1/__init__.py` | Package init | ✅ |
 | `v1/router.py` | V1 router aggregator | ✅ |
 | `v1/workflows.py` | Workflow CRUD endpoints | ✅ |
+| `v1/executions.py` | Execution start/cancel/status endpoints | ✅ |
+| `websocket.py` | WebSocket streaming endpoint | ✅ |
 | | | |
 | **Tests — `tests/`** | | |
 | `__init__.py` | Package init | ✅ |

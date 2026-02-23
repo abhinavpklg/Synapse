@@ -1,8 +1,8 @@
 """create initial tables
 
-Revision ID: 9db79cf61e01
+Revision ID: 06bd6bbe928a
 Revises: 
-Create Date: 2026-02-21 03:12:53.638645
+Create Date: 2026-02-23 01:50:55.084231
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9db79cf61e01'
+revision: str = '06bd6bbe928a'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -76,7 +76,7 @@ def upgrade() -> None:
     )
     op.create_table('agent_executions',
     sa.Column('workflow_execution_id', sa.Uuid(), nullable=False),
-    sa.Column('agent_node_id', sa.Uuid(), nullable=False),
+    sa.Column('agent_node_id', sa.String(length=255), nullable=False, comment='React Flow node ID (not a FK — nodes live in canvas_data JSON)'),
     sa.Column('status', sa.Enum('IDLE', 'WAITING', 'RUNNING', 'COMPLETED', 'FAILED', 'SKIPPED', name='agentstatus'), nullable=False),
     sa.Column('input_data', sa.JSON(), nullable=False),
     sa.Column('output_data', sa.JSON(), nullable=False),
@@ -87,7 +87,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['agent_node_id'], ['agent_nodes.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['workflow_execution_id'], ['workflow_executions.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )

@@ -158,8 +158,12 @@ def _register_routes(app: FastAPI) -> None:
 
     # API v1 routes will be registered here as we build them:
     from app.api.v1.router import api_v1_router
+    from app.api.websocket import execution_websocket
 
     app.include_router(api_v1_router, prefix="/api/v1")
+
+    # WebSocket endpoint for execution streaming
+    app.websocket("/ws/executions/{execution_id}")(execution_websocket)
 
 
 # Create the app instance — this is what uvicorn imports

@@ -96,8 +96,9 @@ class AgentExecution(Base):
     workflow_execution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("workflow_executions.id", ondelete="CASCADE"),
     )
-    agent_node_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("agent_nodes.id", ondelete="CASCADE"),
+    agent_node_id: Mapped[str] = mapped_column(
+        String(255),
+        comment="React Flow node ID (not a FK — nodes live in canvas_data JSON)",
     )
     status: Mapped[AgentStatus] = mapped_column(
         Enum(AgentStatus),
